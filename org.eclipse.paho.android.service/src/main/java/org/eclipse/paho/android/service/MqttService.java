@@ -583,6 +583,9 @@ public class MqttService extends Service implements MqttTraceHandler {
    * @return the MqttConnection identified by this handle
    */
   private MqttConnection getConnection(String clientHandle) {
+    if(clientHandle == null){
+      throw new IllegalArgumentException("Invalid ClientHandle");
+    }
     MqttConnection client = connections.get(clientHandle);
     if (client == null) {
       throw new IllegalArgumentException("Invalid ClientHandle");

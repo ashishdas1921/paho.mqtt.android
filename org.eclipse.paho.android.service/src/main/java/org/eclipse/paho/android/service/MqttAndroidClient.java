@@ -455,10 +455,9 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 	 * Actually do the mqtt connect operation
 	 */
 	private void doConnect() {
-		if (clientHandle == null) {
-			clientHandle = mqttService.getClient(serverURI, clientId,myContext.getApplicationInfo().packageName,
+		clientHandle = mqttService.getClient(serverURI, clientId,myContext.getApplicationInfo().packageName,
 					persistence);
-		}
+
 		mqttService.setTraceEnabled(traceEnabled);
 		mqttService.setTraceCallbackId(clientHandle);
 		
@@ -467,7 +466,7 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 			mqttService.connect(clientHandle, connectOptions, null,
 					activityToken);
 		}
-		catch (MqttException e) {
+		catch (IllegalArgumentException|MqttException e) {
 			IMqttActionListener listener = connectToken.getActionCallback();
 			if (listener != null) {
 				listener.onFailure(connectToken, e);

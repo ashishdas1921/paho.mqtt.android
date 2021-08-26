@@ -91,12 +91,7 @@ class AlarmPingSender implements MqttPingSender
         @Override
         public void run()
         {
-            // Execute tasks on main thread
-            Log.d("Handlers", "Called on main thread");
-            // Repeat this task again keepAlive interval
             sendPing();
-
-            schedule(comms.getKeepAlive());
         }
     };
 

@@ -45,9 +45,6 @@ class AlarmPingSender implements MqttPingSender {
     private volatile boolean hasStarted = false;
     private HandlerThread mThread;
     private Handler mHandler;
-    private WakeLock mWakeLock;
-    private String mWakeLockTag;
-    private final static Long ACQUIRE_MS = 10 * 60 * 1000L; // 10 Minutes
 
     public AlarmPingSender(MqttService service) {
         if (service == null) {
@@ -62,13 +59,9 @@ class AlarmPingSender implements MqttPingSender {
         this.comms = comms;
 
         quitSafelyThread();
-        mWakeLockTag = MqttServiceConstants.PING_WAKELOCK + this.comms.getClient().getClientId();
         mThread = new HandlerThread(TAG);
         mThread.start();
         mHandler = new Handler(mThread.getLooper());
-        PowerManager pm = (PowerManager) service
-                .getSystemService(Service.POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, mWakeLockTag);
     }
 
     @SuppressLint("UnspecifiedImmutableFlag")
@@ -115,12 +108,6 @@ class AlarmPingSender implements MqttPingSender {
         }
     }
 
-    private void releaseWakeLock() {
-        if (mWakeLock.isHeld()) {
-            mWakeLock.release();
-        }
-    }
-
     private final Runnable mRunnable = new Runnable() {
         @Override
         public void run() {
@@ -129,35 +116,22 @@ class AlarmPingSender implements MqttPingSender {
     };
 
     private synchronized void sendPing() {
-        if (!mWakeLock.isHeld()) {
-            mWakeLock.acquire(ACQUIRE_MS);
-        }
         Log.d(TAG, "Sending Ping at:" + System.currentTimeMillis());
 
         // Assign new callback to token to execute code after PingResq
         // arrives. Get another wakelock even receiver already has one,
         // release it until ping response returns.
-        IMqttToken token = comms.checkForActivity(new IMqttActionListener() {
+        comms.checkForActivity(new IMqttActionListener() {
             @Override
             public void onSuccess(IMqttToken asyncActionToken) {
-                Log.d(TAG, "Success. Release lock(" + mWakeLockTag + "):"
-                        + System.currentTimeMillis());
-                //Release wakelock when it is done.
-                releaseWakeLock();
+                Log.d(TAG, "Success. " + System.currentTimeMillis());
             }
 
             @Override
             public void onFailure(IMqttToken asyncActionToken,
                                   Throwable exception) {
-                Log.d(TAG, "Failure. Release lock(" + mWakeLockTag + "):"
-                        + System.currentTimeMillis());
-                //Release wakelock when it is done.
-                releaseWakeLock();
+                Log.d(TAG, "Failure. " + System.currentTimeMillis());
             }
         });
-
-        if (token == null) {
-            releaseWakeLock();
-        }
     }
 }
